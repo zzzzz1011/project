@@ -14,11 +14,8 @@ st.set_page_config(
 # --- 2. Custom CSS ---
 st.markdown("""
 <style>
-    /* Main Layout */
     .main { background-color: #f5f7f9; }
     h1 { color: #1E3D59; font-family: 'Helvetica', sans-serif; }
-    
-    /* Green Card (Predicted Salary) */
     .metric-card-green {
         background-color: #d4edda; border: 1px solid #c3e6cb;
         padding: 20px; border-radius: 10px; color: #155724;
@@ -27,7 +24,6 @@ st.markdown("""
     .metric-card-green h2 { margin: 0; font-size: 18px; font-weight: normal; color: #155724; }
     .metric-card-green h1 { margin: 0; font-size: 40px; font-weight: bold; color: #155724; }
     
-    /* Yellow Card (Typical Range) */
     .metric-card-yellow {
         background-color: #fff3cd; border: 1px solid #ffeeba;
         padding: 20px; border-radius: 10px; color: #856404;
@@ -36,14 +32,12 @@ st.markdown("""
     .metric-card-yellow h2 { margin: 0; font-size: 18px; font-weight: normal; color: #856404; }
     .metric-card-yellow h1 { margin: 0; font-size: 30px; font-weight: bold; color: #856404; }
     
-    /* Green Predict Button */
     div.stButton > button {
         background-color: #28a745; color: white; font-size: 18px; font-weight: bold;
         height: 50px; width: 100%; border-radius: 8px; border: none; transition: all 0.3s;
     }
     div.stButton > button:hover { background-color: #218838; transform: scale(1.02); }
     
-    /* Section Headers */
     .section-header {
         font-size: 20px; font-weight: bold; color: #333; margin-top: 20px; margin-bottom: 10px;
         border-bottom: 2px solid #28a745; padding-bottom: 5px;
@@ -58,9 +52,13 @@ def load_data():
         model = joblib.load('salary_model_final.pkl')
         metadata = joblib.load('app_metadata.pkl')
         
-        # Patch for old metadata files (Safety Check)
+        # Safety patch
         if "Internship" not in metadata['experience_map']:
             metadata['experience_map']['Internship'] = 0
+            
+        # Safety fallback if you forgot to run Step 1
+        if "skill_list" not in metadata:
+            metadata['skill_list'] = ["Python", "SQL", "Java", "AWS", "Excel"]
             
         return model, metadata
     except FileNotFoundError:
@@ -69,34 +67,57 @@ def load_data():
 model, metadata = load_data()
 
 if model is None:
-    st.error("⚠️ Files missing! Please run the export code in your notebook.")
+    st.error("⚠️ Files missing! Please run the metadata export code in your notebook.")
     st.stop()
 
 # --- 4. Prediction Logic ---
-def extract_skills(df, text_col):
-    keywords = ['python', 'sql', 'java', 'aws', 'azure', 'spark', 'react', 'kubernetes']
-    for key in keywords:
-        df[f'has_{key}'] = df[text_col].str.lower().apply(lambda x: 1 if key in x else 0)
-    df['has_kubernetes'] = df[text_col].str.lower().apply(lambda x: 1 if 'kubernetes' in x or 'k8s' in x else df['has_kubernetes'])
-    return df
-
-def get_prediction(title, desc, loc, exp_level, remote_val):
-    # Smart Mapping
+def get_prediction(title, skills_list, loc, exp_level, remote_val):
+    # 1. Map Experience
     if exp_level == 0:   title_val, exp_val = 0, 1
     elif exp_level == 1: title_val, exp_val = 1, 1
     elif exp_level == 2: title_val, exp_val = 2, 3
     elif exp_level == 3: title_val, exp_val = 3, 4
     else:                title_val, exp_val = 4, 4
 
+    # 2. Construct "Fake" Description from Skills
+    # The model expects a description, so we build one.
+    generated_desc = f"Job for {title}. Skills required: {', '.join(skills_list)}."
+    full_text_feature = f"{title} {generated_desc}"
+
     input_data = pd.DataFrame({
-        'title_clean': [title], 'description_clean': [desc],
-        'location_group': [loc], 'experience_encoded': [exp_val],
+        'title_clean': [title], 
+        'description_clean': [generated_desc],
+        'location_group': [loc], 
+        'experience_encoded': [exp_val],
         'remote_allowed': [1 if remote_val == "Yes" else 0],
-        'text_feature': [f"{title} {desc}"], 
-        'pay_period': ['YEARLY'], 'company_size': ['Unknown'], 'employment_type': ['Full-time']
+        'text_feature': [full_text_feature], 
+        'pay_period': ['YEARLY'], 
+        'company_size': ['Unknown'], 
+        'employment_type': ['Full-time']
     })
     
-    input_data = extract_skills(input_data, 'text_feature')
+    # 3. Manually Activate Skill Columns
+    # We turn on the specific 'has_X' columns for the selected skills
+    if 'skill_columns' in metadata:
+        # Initialize all known skills to 0
+        for col in metadata['skill_columns']:
+            input_data[col] = 0
+            
+        # Set selected skills to 1
+        for skill_name in skills_list:
+            # Convert UI name back to column name (simple heuristic)
+            # e.g. "Power Bi" -> "has_power_bi"
+            simple_col = "has_" + skill_name.lower().replace(" ", "_")
+            
+            # Try to find the exact column match
+            if simple_col in input_data.columns:
+                input_data[simple_col] = 1
+            else:
+                # Fallback search
+                for col in metadata['skill_columns']:
+                    if skill_name.lower() in col:
+                        input_data[col] = 1
+
     input_data['title_seniority_ordinal'] = title_val
     
     return np.expm1(model.predict(input_data)[0])
@@ -105,12 +126,12 @@ def get_prediction(title, desc, loc, exp_level, remote_val):
 with st.sidebar:
     st.image("https://cdn-icons-png.flaticon.com/512/2666/2666505.png", width=80)
     st.markdown("### 🤖 Salary Model")
-    st.info("This tool uses **XGBoost** trained on 3k+ tech job postings to estimate market value.")
+    st.info("This tool uses **XGBoost** trained on 3k+ tech job postings.")
     st.markdown("---")
     st.caption("© 2025 FYP Project")
 
-st.title("💸 Salary Consultant")
-st.markdown("##### 🚀 Get a data-driven salary estimate and career advice in seconds.")
+st.title("💸 AI Salary Consultant")
+st.markdown("##### 🚀 Get a data-driven salary estimate based on your exact skill set.")
 st.write("")
 
 # --- 6. Main Inputs ---
@@ -120,16 +141,8 @@ with st.container():
     with col1:
         st.markdown('<div class="section-header">1. Job Details</div>', unsafe_allow_html=True)
         
-        # --- CHANGED: JOB TITLE IS NOW A DROPDOWN ---
-        # We try to find 'Data Scientist' as the default startup value
-        job_options = metadata.get('job_titles', ["Data Scientist (Default)"])
-        
-        try:
-            default_ix = job_options.index("Data Scientist")
-        except ValueError:
-            default_ix = 0
-            
-        job_title = st.selectbox("Job Title", job_options, index=default_ix)
+        # REVERTED TO TEXT INPUT
+        job_title = st.text_input("Job Title", "Data Scientist", placeholder="e.g. Software Engineer")
         
         # Seniority Dropdown
         order = ["Internship", "Entry Level", "Mid Level", "Senior Level", "Executive"]
@@ -139,10 +152,15 @@ with st.container():
         remote = st.radio("Remote Work?", ["No", "Yes"], horizontal=True)
 
     with col2:
-        st.markdown('<div class="section-header">2. Location & Context</div>', unsafe_allow_html=True)
+        st.markdown('<div class="section-header">2. Skills & Context</div>', unsafe_allow_html=True)
         location = st.selectbox("Location", metadata['locations'])
-        description = st.text_area("Job Description / Skills", height=125, 
-                                   placeholder="Paste job description here (e.g. Python, AWS required...)")
+        
+        # NEW SKILL SELECTOR
+        selected_skills = st.multiselect(
+            "Select Technical Skills", 
+            metadata['skill_list'],
+            default=["Python", "SQL"] if "Python" in metadata['skill_list'] else None
+        )
     
     st.write("")
     if st.button("✨ Analyze Salary"):
@@ -151,7 +169,7 @@ with st.container():
             
             # --- CALCULATIONS ---
             current_level = metadata['experience_map'][exp_label]
-            pred_salary = get_prediction(job_title, description, location, current_level, remote)
+            pred_salary = get_prediction(job_title, selected_skills, location, current_level, remote)
             
             lower_bound = pred_salary * 0.88
             upper_bound = pred_salary * 1.12
@@ -160,13 +178,14 @@ with st.container():
             loc_recommendations = []
             for loc in metadata['locations']:
                 if loc != location:
-                    val = get_prediction(job_title, description, loc, current_level, remote)
+                    # Run prediction for other locations
+                    val = get_prediction(job_title, selected_skills, loc, current_level, remote)
                     loc_recommendations.append((loc, val))
             
             loc_recommendations.sort(key=lambda x: x[1], reverse=True)
             top_3_locs = loc_recommendations[:3]
             
-            # --- DISPLAY RESULTS (CUSTOM CARDS) ---
+            # --- DISPLAY RESULTS ---
             st.markdown("---")
             
             res_col1, res_col2, res_col3 = st.columns([1, 1, 1.5])
@@ -188,14 +207,10 @@ with st.container():
                 """, unsafe_allow_html=True)
                 
             with res_col3:
-                input_df = pd.DataFrame({'text_feature': [f"{job_title} {description}"]})
-                input_df = extract_skills(input_df, 'text_feature')
-                skills = [c.replace('has_', '').title() for c in input_df.columns if input_df[c][0]==1 and c!='text_feature']
-                
-                if skills:
-                    st.success(f"✅ Skills Detected: {', '.join(skills)}")
+                if selected_skills:
+                    st.success(f"✅ Skills Factored In: {', '.join(selected_skills)}")
                 else:
-                    st.warning("No technical skills detected (Python, SQL, etc).")
+                    st.warning("No specific skills selected. Prediction based on title only.")
 
             # --- INSIGHTS ---
             st.markdown("### 📊 Market Insights")
@@ -206,7 +221,7 @@ with st.container():
                 levels_map = {0: "Intern", 1: "Entry", 2: "Mid", 3: "Senior", 4: "Exec"}
                 growth_data = []
                 for code, name in levels_map.items():
-                    val = get_prediction(job_title, description, location, code, remote)
+                    val = get_prediction(job_title, selected_skills, location, code, remote)
                     growth_data.append({"Level": name, "Salary": val})
                 
                 st.bar_chart(pd.DataFrame(growth_data).set_index("Level"), color="#28a745")
@@ -222,5 +237,5 @@ with st.container():
                     st.markdown(f":{color}[${pay:,.0f} ({icon} ${diff:,.0f})]")
 
             # Download
-            report = f"Role: {job_title}\nExp: {exp_label}\nLoc: {location}\n\nPrediction: ${pred_salary:,.2f}\nRange: ${lower_bound:,.0f}-${upper_bound:,.0f}"
+            report = f"Role: {job_title}\nSkills: {', '.join(selected_skills)}\nExp: {exp_label}\nLoc: {location}\n\nPrediction: ${pred_salary:,.2f}"
             st.download_button("📄 Save Report", report, file_name="salary_report.txt")
