@@ -141,8 +141,8 @@ with st.container():
     with col1:
         st.markdown('<div class="section-header">1. Job Details</div>', unsafe_allow_html=True)
         
-        # REVERTED TO TEXT INPUT
-        job_title = st.text_input("Job Title", "Data Scientist", placeholder="e.g. Software Engineer")
+        # CHANGED: Default is now empty string "" to force validation
+        job_title = st.text_input("Job Title", "", placeholder="e.g. Software Engineer")
         
         # Seniority Dropdown
         order = ["Internship", "Entry Level", "Mid Level", "Senior Level", "Executive"]
@@ -163,79 +163,88 @@ with st.container():
         )
     
     st.write("")
+    
+    # --- BUTTON LOGIC WITH VALIDATION ---
     if st.button("✨ Analyze Salary"):
-        with st.spinner("🤖 Crunching numbers & analyzing market trends..."):
-            time.sleep(0.8) # UX delay
-            
-            # --- CALCULATIONS ---
-            current_level = metadata['experience_map'][exp_label]
-            pred_salary = get_prediction(job_title, selected_skills, location, current_level, remote)
-            
-            lower_bound = pred_salary * 0.88
-            upper_bound = pred_salary * 1.12
-            
-            # --- RELOCATION ENGINE ---
-            loc_recommendations = []
-            for loc in metadata['locations']:
-                if loc != location:
-                    # Run prediction for other locations
-                    val = get_prediction(job_title, selected_skills, loc, current_level, remote)
-                    loc_recommendations.append((loc, val))
-            
-            loc_recommendations.sort(key=lambda x: x[1], reverse=True)
-            top_3_locs = loc_recommendations[:3]
-            
-            # --- DISPLAY RESULTS ---
-            st.markdown("---")
-            
-            res_col1, res_col2, res_col3 = st.columns([1, 1, 1.5])
-            
-            with res_col1:
-                st.markdown(f"""
-                <div class="metric-card-green">
-                    <h2>Predicted Salary</h2>
-                    <h1>${pred_salary:,.0f}</h1>
-                </div>
-                """, unsafe_allow_html=True)
+        
+        # 1. CHECK IF TITLE IS EMPTY
+        if not job_title.strip():
+            st.error("⚠️ Please insert a Job Title to continue.")
+        
+        # 2. IF VALID, PROCEED
+        else:
+            with st.spinner("🤖 Crunching numbers & analyzing market trends..."):
+                time.sleep(0.8) # UX delay
                 
-            with res_col2:
-                st.markdown(f"""
-                <div class="metric-card-yellow">
-                    <h2>Typical Range</h2>
-                    <h1>${lower_bound:,.0f} - {upper_bound:,.0f}</h1>
-                </div>
-                """, unsafe_allow_html=True)
+                # --- CALCULATIONS ---
+                current_level = metadata['experience_map'][exp_label]
+                pred_salary = get_prediction(job_title, selected_skills, location, current_level, remote)
                 
-            with res_col3:
-                if selected_skills:
-                    st.success(f"✅ Skills Factored In: {', '.join(selected_skills)}")
-                else:
-                    st.warning("No specific skills selected. Prediction based on title only.")
+                lower_bound = pred_salary * 0.88
+                upper_bound = pred_salary * 1.12
+                
+                # --- RELOCATION ENGINE ---
+                loc_recommendations = []
+                for loc in metadata['locations']:
+                    if loc != location:
+                        # Run prediction for other locations
+                        val = get_prediction(job_title, selected_skills, loc, current_level, remote)
+                        loc_recommendations.append((loc, val))
+                
+                loc_recommendations.sort(key=lambda x: x[1], reverse=True)
+                top_3_locs = loc_recommendations[:3]
+                
+                # --- DISPLAY RESULTS ---
+                st.markdown("---")
+                
+                res_col1, res_col2, res_col3 = st.columns([1, 1, 1.5])
+                
+                with res_col1:
+                    st.markdown(f"""
+                    <div class="metric-card-green">
+                        <h2>Predicted Salary</h2>
+                        <h1>${pred_salary:,.0f}</h1>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                with res_col2:
+                    st.markdown(f"""
+                    <div class="metric-card-yellow">
+                        <h2>Typical Range</h2>
+                        <h1>${lower_bound:,.0f} - {upper_bound:,.0f}</h1>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                with res_col3:
+                    if selected_skills:
+                        st.success(f"✅ Skills Factored In: {', '.join(selected_skills)}")
+                    else:
+                        st.warning("No specific skills selected. Prediction based on title only.")
 
-            # --- INSIGHTS ---
-            st.markdown("### 📊 Market Insights")
-            chart_col, advice_col = st.columns([2, 1])
-            
-            with chart_col:
-                st.markdown("**Career Growth Trajectory**")
-                levels_map = {0: "Intern", 1: "Entry", 2: "Mid", 3: "Senior", 4: "Exec"}
-                growth_data = []
-                for code, name in levels_map.items():
-                    val = get_prediction(job_title, selected_skills, location, code, remote)
-                    growth_data.append({"Level": name, "Salary": val})
+                # --- INSIGHTS ---
+                st.markdown("### 📊 Market Insights")
+                chart_col, advice_col = st.columns([2, 1])
                 
-                st.bar_chart(pd.DataFrame(growth_data).set_index("Level"), color="#28a745")
-                
-            with advice_col:
-                st.markdown("**💡 Relocation Tips**")
-                st.write(f"Top paying cities for *{job_title}*:")
-                for i, (city, pay) in enumerate(top_3_locs):
-                    diff = pay - pred_salary
-                    icon = "🔥" if diff > 0 else "📉"
-                    color = "green" if diff > 0 else "red"
-                    st.markdown(f"**{i+1}. {city}**")
-                    st.markdown(f":{color}[${pay:,.0f} ({icon} ${diff:,.0f})]")
+                with chart_col:
+                    st.markdown("**Career Growth Trajectory**")
+                    levels_map = {0: "Intern", 1: "Entry", 2: "Mid", 3: "Senior", 4: "Exec"}
+                    growth_data = []
+                    for code, name in levels_map.items():
+                        val = get_prediction(job_title, selected_skills, location, code, remote)
+                        growth_data.append({"Level": name, "Salary": val})
+                    
+                    st.bar_chart(pd.DataFrame(growth_data).set_index("Level"), color="#28a745")
+                    
+                with advice_col:
+                    st.markdown("**💡 Relocation Tips**")
+                    st.write(f"Top paying cities for *{job_title}*:")
+                    for i, (city, pay) in enumerate(top_3_locs):
+                        diff = pay - pred_salary
+                        icon = "🔥" if diff > 0 else "📉"
+                        color = "green" if diff > 0 else "red"
+                        st.markdown(f"**{i+1}. {city}**")
+                        st.markdown(f":{color}[${pay:,.0f} ({icon} ${diff:,.0f})]")
 
-            # Download
-            report = f"Role: {job_title}\nSkills: {', '.join(selected_skills)}\nExp: {exp_label}\nLoc: {location}\n\nPrediction: ${pred_salary:,.2f}"
-            st.download_button("📄 Save Report", report, file_name="salary_report.txt")
+                # Download
+                report = f"Role: {job_title}\nSkills: {', '.join(selected_skills)}\nExp: {exp_label}\nLoc: {location}\n\nPrediction: ${pred_salary:,.2f}"
+                st.download_button("📄 Save Report", report, file_name="salary_report.txt")
