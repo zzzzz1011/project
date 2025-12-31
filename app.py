@@ -6,7 +6,7 @@ import time
 
 # --- 1. Page Configuration ---
 st.set_page_config(
-    page_title="Salary AI Pro",
+    page_title="Salary Prediction",
     page_icon="💸",
     layout="wide"
 )
@@ -110,12 +110,12 @@ def get_prediction(title, desc, loc, exp_level, remote_val):
 # --- 5. Sidebar & Header ---
 with st.sidebar:
     st.image("https://cdn-icons-png.flaticon.com/512/2666/2666505.png", width=80)
-    st.markdown("### 🤖 Salary AI Model")
+    st.markdown("### 🤖 Salary Model")
     st.info("This tool uses **XGBoost** trained on 3k+ tech job postings to estimate market value.")
     st.markdown("---")
     st.caption("© 2025 FYP Project")
 
-st.title("💸 AI Salary Consultant")
+st.title("💸 Salary Consultant")
 st.markdown("##### 🚀 Get a data-driven salary estimate and career advice in seconds.")
 st.write("")
 
@@ -221,4 +221,5 @@ with st.container():
 
             # Download
             report = f"Role: {job_title}\nExp: {exp_label}\nLoc: {location}\n\nPrediction: ${pred_salary:,.2f}\nRange: ${lower_bound:,.0f}-${upper_bound:,.0f}"
+
             st.download_button("📄 Save Report", report, file_name="salary_report.txt")
