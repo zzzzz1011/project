@@ -20,26 +20,18 @@ st.markdown("""
     
     /* Green Card (Predicted Salary) */
     .metric-card-green {
-        background-color: #d4edda; /* Light Green */
-        border: 1px solid #c3e6cb;
-        padding: 20px;
-        border-radius: 10px;
-        color: #155724;
-        text-align: center;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        background-color: #d4edda; border: 1px solid #c3e6cb;
+        padding: 20px; border-radius: 10px; color: #155724;
+        text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     .metric-card-green h2 { margin: 0; font-size: 18px; font-weight: normal; color: #155724; }
     .metric-card-green h1 { margin: 0; font-size: 40px; font-weight: bold; color: #155724; }
     
     /* Yellow Card (Typical Range) */
     .metric-card-yellow {
-        background-color: #fff3cd; /* Light Yellow */
-        border: 1px solid #ffeeba;
-        padding: 20px;
-        border-radius: 10px;
-        color: #856404;
-        text-align: center;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        background-color: #fff3cd; border: 1px solid #ffeeba;
+        padding: 20px; border-radius: 10px; color: #856404;
+        text-align: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
     .metric-card-yellow h2 { margin: 0; font-size: 18px; font-weight: normal; color: #856404; }
     .metric-card-yellow h1 { margin: 0; font-size: 30px; font-weight: bold; color: #856404; }
@@ -47,8 +39,7 @@ st.markdown("""
     /* Green Predict Button */
     div.stButton > button {
         background-color: #28a745; color: white; font-size: 18px; font-weight: bold;
-        height: 50px; width: 100%; border-radius: 8px; border: none;
-        transition: all 0.3s;
+        height: 50px; width: 100%; border-radius: 8px; border: none; transition: all 0.3s;
     }
     div.stButton > button:hover { background-color: #218838; transform: scale(1.02); }
     
@@ -66,8 +57,11 @@ def load_data():
     try:
         model = joblib.load('salary_model_final.pkl')
         metadata = joblib.load('app_metadata.pkl')
+        
+        # Patch for old metadata files (Safety Check)
         if "Internship" not in metadata['experience_map']:
             metadata['experience_map']['Internship'] = 0
+            
         return model, metadata
     except FileNotFoundError:
         return None, None
@@ -87,7 +81,7 @@ def extract_skills(df, text_col):
     return df
 
 def get_prediction(title, desc, loc, exp_level, remote_val):
-    # Smart Mapping (Intern -> Entry, Mid -> Senior Data Fix)
+    # Smart Mapping
     if exp_level == 0:   title_val, exp_val = 0, 1
     elif exp_level == 1: title_val, exp_val = 1, 1
     elif exp_level == 2: title_val, exp_val = 2, 3
@@ -125,8 +119,19 @@ with st.container():
     
     with col1:
         st.markdown('<div class="section-header">1. Job Details</div>', unsafe_allow_html=True)
-        job_title = st.text_input("Job Title", "Data Scientist")
         
+        # --- CHANGED: JOB TITLE IS NOW A DROPDOWN ---
+        # We try to find 'Data Scientist' as the default startup value
+        job_options = metadata.get('job_titles', ["Data Scientist (Default)"])
+        
+        try:
+            default_ix = job_options.index("Data Scientist")
+        except ValueError:
+            default_ix = 0
+            
+        job_title = st.selectbox("Job Title", job_options, index=default_ix)
+        
+        # Seniority Dropdown
         order = ["Internship", "Entry Level", "Mid Level", "Senior Level", "Executive"]
         opts = [o for o in order if o in metadata['experience_map']]
         exp_label = st.selectbox("Seniority Level", opts)
@@ -167,7 +172,6 @@ with st.container():
             res_col1, res_col2, res_col3 = st.columns([1, 1, 1.5])
             
             with res_col1:
-                # Custom Green Card HTML
                 st.markdown(f"""
                 <div class="metric-card-green">
                     <h2>Predicted Salary</h2>
@@ -176,7 +180,6 @@ with st.container():
                 """, unsafe_allow_html=True)
                 
             with res_col2:
-                # Custom Yellow Card HTML
                 st.markdown(f"""
                 <div class="metric-card-yellow">
                     <h2>Typical Range</h2>
@@ -185,7 +188,6 @@ with st.container():
                 """, unsafe_allow_html=True)
                 
             with res_col3:
-                # Skill Badge logic (unchanged)
                 input_df = pd.DataFrame({'text_feature': [f"{job_title} {description}"]})
                 input_df = extract_skills(input_df, 'text_feature')
                 skills = [c.replace('has_', '').title() for c in input_df.columns if input_df[c][0]==1 and c!='text_feature']
@@ -221,5 +223,4 @@ with st.container():
 
             # Download
             report = f"Role: {job_title}\nExp: {exp_label}\nLoc: {location}\n\nPrediction: ${pred_salary:,.2f}\nRange: ${lower_bound:,.0f}-${upper_bound:,.0f}"
-
             st.download_button("📄 Save Report", report, file_name="salary_report.txt")
