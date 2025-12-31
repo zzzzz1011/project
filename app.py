@@ -130,7 +130,7 @@ with st.sidebar:
     st.markdown("---")
     st.caption("© 2025 FYP Project")
 
-st.title("💸 AI Salary Consultant")
+st.title("💸 Salary Consultant")
 st.markdown("##### 🚀 Get a data-driven salary estimate based on your exact skill set.")
 st.write("")
 
@@ -248,3 +248,4 @@ with st.container():
                 # Download
                 report = f"Role: {job_title}\nSkills: {', '.join(selected_skills)}\nExp: {exp_label}\nLoc: {location}\n\nPrediction: ${pred_salary:,.2f}"
                 st.download_button("📄 Save Report", report, file_name="salary_report.txt")
+
