@@ -6,7 +6,7 @@ import time
 
 # --- 1. CONFIGURATION & SETUP ---
 st.set_page_config(
-    page_title="Salary AI Pro",
+    page_title="Salary Prediction",
     page_icon="💼",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -145,10 +145,10 @@ with st.sidebar:
     st.markdown("### ℹ️ About")
     st.info("""
     **Model:** XGBoost Regressor
-    **Training Data:** 50,000+ Tech Listings
-    **Accuracy:** 88% R² Score
+    **Training Data:** 3,000+ Tech Listings
+    **Accuracy:** 74% R² Score
     """)
-    st.caption("v2.4.0 | FYP Final Release")
+    st.caption("Final Year Project")
 
 # --- 6. MAIN CONTENT ---
 
@@ -190,7 +190,7 @@ with tab1:
         if not job_title.strip():
             st.warning("⚠️ Please enter a Job Title to proceed.")
         else:
-            with st.spinner("🤖 Analyzing 50,000+ job data points..."):
+            with st.spinner("🤖 Analyzing 3,000 job data points..."):
                 time.sleep(0.8) # UX Wait
                 
                 # A. Base Prediction
@@ -304,3 +304,4 @@ with tab1:
 
 with tab2:
     st.info("💡 **Feature active only after prediction:** Run a prediction in the Calculator tab first to see insights here.")
+
