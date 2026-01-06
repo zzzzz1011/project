@@ -99,10 +99,9 @@ if model is None:
 # --- 4. CORE PREDICTION ENGINE ---
 def get_prediction(title, skills_list, loc, exp_level, remote_val):
     # Experience Mapping
-    if exp_level == 0:   title_val, exp_val = 0, 1
-    elif exp_level == 1: title_val, exp_val = 1, 1
-    elif exp_level == 2: title_val, exp_val = 2, 3
-    elif exp_level == 3: title_val, exp_val = 3, 4
+    if exp_level == 0:   title_val, exp_val = 1, 1
+    elif exp_level == 1: title_val, exp_val = 2, 3
+    elif exp_level == 2: title_val, exp_val = 3, 4
     else:                title_val, exp_val = 4, 4
 
     # Text Feature Engineering
@@ -304,6 +303,7 @@ with tab1:
 
 with tab2:
     st.info("💡 **Feature active only after prediction:** Run a prediction in the Calculator tab first to see insights here.")
+
 
 
 
