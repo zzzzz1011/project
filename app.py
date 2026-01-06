@@ -171,7 +171,7 @@ with tab1:
         job_title = st.text_input("Job Title", "", placeholder="e.g. Data Scientist")
         
         # Smart Defaults
-        exp_opts = [k for k in ["Internship", "Entry Level", "Mid Level", "Senior Level", "Executive"] if k in metadata['experience_map']]
+        exp_opts = [k for k in [ "Entry Level", "Mid Level", "Senior Level", "Executive"] if k in metadata['experience_map']]
         exp_label = st.selectbox("Experience Level", exp_opts)
         
         remote = st.radio("Work Arrangement", ["On-site", "Remote/Hybrid"], horizontal=True)
@@ -304,4 +304,5 @@ with tab1:
 
 with tab2:
     st.info("💡 **Feature active only after prediction:** Run a prediction in the Calculator tab first to see insights here.")
+
 
