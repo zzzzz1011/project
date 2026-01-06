@@ -11,8 +11,10 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+if 'prediction' not in st.session_state:
+    st.session_state['prediction'] = None
 
-# --- 2. PROFESSIONAL STYLING (CSS) ---
+# --- 2.  UI (CSS) ---
 st.markdown("""
 <style>
     /* Global Font & Background */
@@ -150,8 +152,7 @@ with st.sidebar:
     st.caption("Final Year Project")
 
 # --- 6. MAIN CONTENT ---
-
-# Hero Header
+# Header
 st.markdown("""
 <div class="hero-header">
     <h1>AI Salary Consultant</h1>
@@ -169,8 +170,8 @@ with tab1:
         st.subheader("1. Job Profile")
         job_title = st.text_input("Job Title", "", placeholder="e.g. Data Scientist")
         
-        # Smart Defaults
-        exp_opts = [k for k in [ "Entry Level", "Mid Level", "Senior Level", "Executive"] if k in metadata['experience_map']]
+        # Defaults
+        exp_opts = [k for k in ["Entry Level", "Mid Level", "Senior Level", "Executive"] if k in metadata['experience_map']]
         exp_label = st.selectbox("Experience Level", exp_opts)
         
         remote = st.radio("Work Arrangement", ["On-site", "Remote/Hybrid"], horizontal=True)
@@ -190,12 +191,19 @@ with tab1:
             st.warning("⚠️ Please enter a Job Title to proceed.")
         else:
             with st.spinner("🤖 Analyzing 3,000 job data points..."):
-                time.sleep(0.8) # UX Wait
+                time.sleep(0.8) 
                 
                 # A. Base Prediction
                 lvl = metadata['experience_map'][exp_label]
                 base_salary = get_prediction(job_title, skills, location, lvl, is_remote)
-                
+
+                st.session_state['prediction'] = {
+                    'salary': base_salary,
+                    'title': job_title,
+                    'skills': skills,
+                    'level': lvl
+                }
+                st.rerun()
                 # B. Adjust for Pay Period
                 display_salary = base_salary if pay_period == "Yearly" else base_salary / 12
                 display_unit = "/ year" if pay_period == "Yearly" else "/ month"
@@ -302,9 +310,23 @@ with tab1:
                         st.toast("Feedback recorded! Model will learn from this.", icon="✅")
 
 with tab2:
-    st.info("💡 **Feature active only after prediction:** Run a prediction in the Calculator tab first to see insights here.")
-
-
-
-
-
+    if st.session_state['prediction'] is None:
+        st.info("💡 **Feature active only after prediction:** Run a prediction in the Calculator tab first to see insights here.")
+    
+    else:
+        # GET data from state
+        data = st.session_state['prediction']
+        salary = data['salary']
+        
+        # DISPLAY Dashboard
+        st.success(f"✅ Market Data Loaded for **{data['title']}**")
+        
+        # Example Dashboard Metrics
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric("Market Position", "74th Percentile", "Top Tier")
+        with col2:
+            st.metric("Demand Score", "High", "+14% vs avg")
+            
+        st.bar_chart({"Python": 80, "SQL": 60, "AWS": 40})
+        st.caption("Skill demand distribution for this role.")
