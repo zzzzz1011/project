@@ -81,8 +81,8 @@ def load_data():
         metadata = joblib.load('app_metadata.pkl')
         
         # Safety Defaults
-        if "Internship" not in metadata['experience_map']:
-            metadata['experience_map']['Internship'] = 0
+        if "Entry Level" not in metadata['experience_map']:
+            metadata['experience_map']['Entry Level'] = 0
         if "skill_list" not in metadata:
             metadata['skill_list'] = ["Python", "SQL", "Java", "AWS", "Excel"]
             
@@ -304,5 +304,6 @@ with tab1:
 
 with tab2:
     st.info("💡 **Feature active only after prediction:** Run a prediction in the Calculator tab first to see insights here.")
+
 
 
