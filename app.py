@@ -203,7 +203,7 @@ with tab1:
                     'skills': skills,
                     'level': lvl
                 }
-                st.rerun()
+
                 # B. Adjust for Pay Period
                 display_salary = base_salary if pay_period == "Yearly" else base_salary / 12
                 display_unit = "/ year" if pay_period == "Yearly" else "/ month"
@@ -330,3 +330,4 @@ with tab2:
             
         st.bar_chart({"Python": 80, "SQL": 60, "AWS": 40})
         st.caption("Skill demand distribution for this role.")
+
