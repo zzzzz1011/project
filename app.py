@@ -155,7 +155,7 @@ with st.sidebar:
 # Header
 st.markdown("""
 <div class="hero-header">
-    <h1>AI Salary Consultant</h1>
+    <h1>Salary Consultant</h1>
     <p>Predict your market value, analyze skills, and plan your career trajectory.</p>
 </div>
 """, unsafe_allow_html=True)
@@ -330,3 +330,4 @@ with tab2:
             
         st.bar_chart({"Python": 80, "SQL": 60, "AWS": 40})
         st.caption("Skill demand distribution for this role.")
+
