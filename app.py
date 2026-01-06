@@ -310,24 +310,66 @@ with tab1:
                         st.toast("Feedback recorded! Model will learn from this.", icon="✅")
 
 with tab2:
+    # 1. CHECK: Do we have a saved prediction?
     if st.session_state['prediction'] is None:
         st.info("💡 **Feature active only after prediction:** Run a prediction in the Calculator tab first to see insights here.")
     
     else:
-        # GET data from state
+        # 2. GET data from state
         data = st.session_state['prediction']
-        salary = data['salary']
         
-        # DISPLAY Dashboard
+        # 3. DISPLAY: Top Metrics (Existing)
         st.success(f"✅ Market Data Loaded for **{data['title']}**")
         
-        # Example Dashboard Metrics
         col1, col2 = st.columns(2)
         with col1:
             st.metric("Market Position", "74th Percentile", "Top Tier")
         with col2:
             st.metric("Demand Score", "High", "+14% vs avg")
             
+        st.markdown("---")
+
+        # 4. NEW FEATURE: Location Arbitrage (The "Board")
+        st.subheader("🗺️ Geographic Arbitrage: Where pays the most?")
+        st.caption(f"Comparing salaries for {data['title']} across different tech hubs.")
+
+        with st.spinner("Analyzing location data..."):
+            # A. Loop through all locations to find the best pay
+            loc_comparison = []
+            
+            # Use the variables from the saved state
+            # We keep title, skills, and level constant, but change 'loc'
+            for loc_name in metadata['locations']:
+                predicted_val = get_prediction(
+                    data['title'], 
+                    data['skills'], 
+                    loc_name, 
+                    data['level'], 
+                    data['is_remote']
+                )
+                loc_comparison.append({
+                    "Location": loc_name, 
+                    "Salary": predicted_val
+                })
+            
+            # B. Create DataFrame and Sort
+            df_loc = pd.DataFrame(loc_comparison)
+            
+            # Adjust for Yearly/Monthly preference
+            if pay_period == "Monthly":
+                df_loc["Salary"] = df_loc["Salary"] / 12
+            
+            # Sort High to Low and take Top 10
+            df_loc = df_loc.sort_values(by="Salary", ascending=False).head(10)
+            
+            # C. Display the Chart
+            # We create a bar chart where Y-axis is Salary and X-axis is Location
+            st.bar_chart(df_loc.set_index("Location"), color="#28a745")
+
+        # 5. EXISTING: Skill Chart
+        st.markdown("---")
+        st.subheader("📉 Skill Demand")
         st.bar_chart({"Python": 80, "SQL": 60, "AWS": 40})
         st.caption("Skill demand distribution for this role.")
+
 
